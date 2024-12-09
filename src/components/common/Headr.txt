@@ -1,0 +1,149 @@
+import React, { useEffect, useState } from "react";
+import Netflix_Logo from "../../Images/Netflix_Logo.png";
+import { getAuth, signOut, onAuthStateChanged } from "firebase/auth";
+import { auth } from "../../services/FireBase";
+import { Link, useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { addUser, removeUser } from "../../utils/UserSlice";
+import search from "../../Images/search.png";
+import { addRoutePath } from "../../utils/RouteSlice";
+// import GPTButton from "../layout/GPT/GPTButton";
+import { useSearchMovie } from "../../hooks/useSearchMovie";
+import { setEnableSearch } from "../../utils/gptEnable";
+const Header = () => {
+  const user = useSelector((store) => store.user);
+  const [searchItem, setSearch] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [searchedShow, setSearchedShow] = useState("");
+  const route = useSelector((path) => path.route.route);
+
+  useSearchMovie(searchedShow);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const unSubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const { uid, email, displayName, photoURL } = user;
+        dispatch(
+          addUser({
+            uid: uid,
+            email: email,
+            displayName: displayName,
+            photoURL: photoURL,
+          })
+        );
+
+        navigate(
+          ["movies", "tv", "people"].includes(route) ? `/${route}` : "/home"
+        );
+      } else {
+        dispatch(removeUser());
+        navigate("/");
+      }
+    });
+    return () => unSubscribe();
+  }, [route, dispatch, navigate]);
+
+  const handleSignOut = () => {
+    const auth = getAuth();
+    signOut(auth).catch((error) => {
+      const errorCode = error.code;
+      const errorMessage = error.message;
+      console.log(errorCode + "-" + errorMessage);
+    });
+  };
+
+  const handleSearch = () => {
+    if (searchText.length <= 0) {
+      setSearch(!searchItem);
+      dispatch(setEnableSearch());
+    } else {
+      setSearchedShow(searchText);
+    }
+  };
+  return (
+    <div className="absolute z-50 w-screen px-8 bg-bgcolor flex justify-between bg-gradient-to-b from-black md:flex-row flex-col md:pt-5 md:mx-auto md:ml-auto md:mr-auto">
+      <img
+        src={Netflix_Logo}
+        alt="logo"
+        className="w-44 h-[100px] mx-auto md:mx-0"
+      />
+      {user && (
+        <div className="relative md:mx-auto md:pr-10 sm:flex justify-center md:space-y-0 md:space-x-10 space-x-10 font-serif font-semibold text-white md:my-auto my-auto z-10 md:items-center flex-col md:flex-row">
+          {/* Ensure the search and header items are properly positioned */}
+          <div
+            className={`flex items-center my-auto relative space-x-0 md:relative md:my-auto ${
+              searchItem ? "mx-auto" : "mx-auto"
+            }`}
+          >
+            <img
+              src={search}
+              alt="search"
+              className={`h-[20px] w-[20px] cursor-pointer z-50 ${
+                searchItem ? "ml-50" : "mx-auto"
+              }`}
+              onClick={handleSearch}
+            />
+            {searchItem && (
+              <input
+                className="absolute left-0 -translate-x-[20%] md:-translate-x-[20%] border-white border-[1.5px] rounded-xl h-[20px] w-[250px] bg-transparent text-white text-xs px-2 py-0.5 placeholder:text-white z-20"
+                placeholder="Search"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+              />
+            )}
+          </div>
+
+          <div className="flex my-auto space-x-8 mt-1 md:space-x-10 flex-row mx-auto md:flex-row md:mx-auto md:my-auto z-20 sm:md:flex-row">
+            <Link to={route === "home"}>
+              <h3
+                className="hover:underline cursor-pointer"
+                onClick={() => dispatch(addRoutePath("home"))}
+              >
+                Home
+              </h3>
+            </Link>
+            <Link to={route === "movies"}>
+              <h3
+                className="hover:underline cursor-pointer"
+                onClick={() => dispatch(addRoutePath("movies"))}
+              >
+                Movies
+              </h3>
+            </Link>
+            <Link to={route === "tv"}>
+              <h3
+                className="hover:underline cursor-pointer"
+                onClick={() => dispatch(addRoutePath("tv"))}
+              >
+                TV
+              </h3>
+            </Link>
+            <Link to={route === "people"}>
+              <h3
+                className="hover:underline cursor-pointer"
+                onClick={() => dispatch(addRoutePath("people"))}
+              >
+                People
+              </h3>
+            </Link>
+          </div>
+        </div>
+      )}
+      {user && (
+        <div className="flex justify-between space-x-1 md:space-x-3 my-4 ml-auto mr-24 md:my-0 mx-auto md:ml-10 md:flex-col 820:flex-row z-10">
+          {/* <GPTButton /> */}
+          <button
+            className="text-white text-[10px] font-semibold font-serif h-[25px] rounded-md shadow-md bg-red-700 px-1.5 mr-5 my-auto hover:bg-red-800 md:w-16"
+            onClick={handleSignOut}
+          >
+            Sign Out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Header;
