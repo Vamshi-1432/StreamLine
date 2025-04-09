@@ -1,0 +1,6 @@
+{
+  "git.autofetch": false,
+  "git.enabled": true,
+  "git.branchRandomName.enable": true,
+  "explorer.excludeGitIgnore": false
+}
